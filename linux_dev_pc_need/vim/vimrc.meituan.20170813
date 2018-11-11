@@ -1,0 +1,132 @@
+" To use this configure of vim, need to install:
+"   - ctags: ctags-5.8, make, make install
+"   - taglist: http://www.vim.org/scripts/script.php?script_id=273
+"   - cscope: cscope-15.7b, http://blog.csdn.net/willinux20130812/article/details/46883207
+"   all those could be find in baiduyun.
+
+" vim, set tab into 4 space, but ignore Makefile
+set tabstop=4
+set softtabstop=4
+set shiftwidth=4
+set expandtab
+autocmd FileType makefile set noexpandtab
+autocmd FileType make set noexpandtab
+
+" delete space of tail of line when write quit "
+autocmd FileType c,cpp,java,php,python,javascript,shell autocmd BufWritePre <buffer> :%s/\s\+$//e
+
+if v:lang =~ "utf8$" || v:lang =~ "UTF-8$"
+   set fileencodings=ucs-bom,utf-8,latin1
+endif
+
+set nocompatible	" Use Vim defaults (much better!)
+set bs=indent,eol,start		" allow backspacing over everything in insert mode
+"set ai			" always set autoindenting on
+"set backup		" keep a backup file
+set viminfo='20,\"50	" read/write a .viminfo file, don't store more
+			" than 50 lines of registers
+set history=50		" keep 50 lines of command line history
+set ruler		" show the cursor position all the time
+
+" Only do this part when compiled with support for autocommands
+if has("autocmd")
+  augroup redhat
+  autocmd!
+  " In text files, always limit the width of text to 78 characters
+  " autocmd BufRead *.txt set tw=78
+  " When editing a file, always jump to the last cursor position
+  autocmd BufReadPost *
+  \ if line("'\"") > 0 && line ("'\"") <= line("$") |
+  \   exe "normal! g'\"" |
+  \ endif
+  " don't write swapfile on most commonly used directories for NFS mounts or USB sticks
+  autocmd BufNewFile,BufReadPre /media/*,/run/media/*,/mnt/* set directory=~/tmp,/var/tmp,/tmp
+  " start with spec file template
+  autocmd BufNewFile *.spec 0r /usr/share/vim/vimfiles/template.spec
+  augroup END
+endif
+
+if has("cscope") && filereadable("/usr/bin/cscope")
+   set csprg=/usr/bin/cscope
+   set csto=0
+   set cst
+   set nocsverb
+   " add any database in current directory
+   if filereadable("cscope.out")
+      cs add $PWD/cscope.out
+   " else add database pointed to by environment
+   elseif $CSCOPE_DB != ""
+      cs add $CSCOPE_DB
+   endif
+   set csverb
+endif
+
+" Switch syntax highlighting on, when the terminal has colors
+" Also switch on highlighting the last used search pattern.
+if &t_Co > 2 || has("gui_running")
+  syntax on
+  set hlsearch
+endif
+
+filetype plugin on
+
+if &term=="xterm"
+     set t_Co=8
+     set t_Sb=[4%dm
+     set t_Sf=[3%dm
+endif
+
+" Don't wake up system with blinking cursor:
+" http://www.linuxpowertop.org/known.php
+let &guicursor = &guicursor . ",a:blinkon0"
+
+"""""""""""""""""Taglist设置"""""""""""""""""
+let Tlist_Auto_Open = 1
+let Tlist_Ctags_Cmd = '/usr/bin/ctags'
+let Tlist_Show_One_File = 1
+let Tlist_Exit_OnlyWindow = 1
+nnoremap <silent> <F9> :TlistToggle<CR>
+
+"""""""""""""""""cscope"""""""""""""""""
+if has("cscope")
+	" set csprg=/usr/local/bin/cscope
+	set csto=1
+	set cst
+	set nocsverb
+	set cscopequickfix=s-,c-,d-,i-,t-,e-
+	" add any database in current directory
+	if filereadable("cscope.out")
+		cs add cscope.out
+		" else add database pointed to by environment
+	elseif $CSCOPE_DB != ""
+		cs add $CSCOPE_DB
+	endif
+	set csverb
+endif
+
+" cs find s: find all c 'S'ymbols(function, macro, enum) show place.
+nmap <Leader>ss :cs find s <C-R>=expand("<cword>")<CR><CR>:bot cw<CR>
+" cs find c: Find this symbol(function, macro, enum) definition
+nmap <Leader>sg :cs find g <C-R>=expand("<cword>")<CR><CR>:bot cw<CR>
+" cs find c: Find functions 'c'alling this function
+nmap <Leader>sc :cs find c <C-R>=expand("<cword>")<CR><CR>:bot cw<CR>
+" cs find t: Find this 't'ext string
+nmap <Leader>st :cs find t <C-R>=expand("<cword>")<CR><CR>:bot cw<CR>
+" ???
+nmap <Leader>se :cs find e <C-R>=expand("<cword>")<CR><CR>:bot cw<CR>
+" cs find f: Find this 'f'ile.
+nmap <Leader>sf :cs find f <C-R>=expand("<cfile>")<CR><CR>:bot cw<CR>
+" cs find i: Find files #'i'ncluding this file
+nmap <Leader>si :cs find i <C-R>=expand("<cfile>")<CR><CR>:bot cw<CR>
+" cs find d: Find functions calle'd' by this function
+nmap <Leader>sd :cs find d <C-R>=expand("<cword>")<CR><CR>:bot cw<CR>
+
+" producec cscope files:
+"   - cscope.files: files of this project.
+nmap <silent> <Leader>u :!find . -name "*.cc" -o -name "*.hh" -o -name "*.h" -o -name "*.c" -o -name "*.inc" -o -iname "*.cpp" -o -iname "*.hpp" -o -iname "*.cxx" -o -iname "*.hxx" -o -iname "*.java" -o -iname "*.py" > cscope.files<CR>:!cscope -Rbq -i cscope.files<CR>:cscope reset<CR>:!ctags --tag-relative=yes -L cscope.files --c++-kinds=+p --fields=+iaS --extra=+q -I ~/.vim/tags_ignore<CR><CR>
+nmap <silent> <Leader><Leader>u :!cscope -Rbq -i cscope.files<CR>:cscope reset<CR>:!ctags --tag-relative=yes -L cscope.files --c++-kinds=+p --fields=+iaS --extra=+q -I ~/.vim/tags_ignore<CR><CR>
+
+""""""""""""""""misc"""""""""""""""""
+" high light "
+nnoremap <silent> <F1> :set hlsearch<CR>
+nnoremap <silent> <F2> :set nohlsearch<CR>
